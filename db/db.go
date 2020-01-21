@@ -17,3 +17,22 @@ func Connect(connStr *string) (*sql.DB, error) {
 	return db, err
 }
 
+func CreateTables(conn *sql.DB) error {
+	err := CreateCategoryTable(conn)
+	if err != nil {
+		return err
+	}
+
+	err = CreateUserTable(conn)
+	if err != nil {
+		return err
+	}
+
+	err = CreateMessageTable(conn)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
