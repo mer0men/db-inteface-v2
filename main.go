@@ -16,9 +16,6 @@ import (
 )
 
 func main() {
-	done := make(chan os.Signal, 1)
-	signal.Notify(done, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
-
 	db, err := dbpkg.Connect(nil)
 	if err != nil {
 		log.Fatal(err)
@@ -39,19 +36,17 @@ func main() {
 		Handler:      c,
 	}
 
-	log.Printf("Server successfully started at port %v\n", server.Addr)
-	log.Println(server.ListenAndServe())
+	go func() {
+		sigint := make(chan os.Signal, 1)
+		signal.Notify(sigint, os.Interrupt, syscall.SIGTERM)
 
-	<-done
-	log.Print("Server Stopped")
+		<-sigint
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer func() {
-		cancel()
+		if err := server.Shutdown(context.Background()); err != nil {
+			log.Printf("HTTP server Shutdown: %v", err)
+		}
 	}()
 
-	if err := server.Shutdown(ctx); err != nil {
-		log.Fatalf("Server Shutdown Failed:%+v", err)
-	}
-	log.Print("Server Exited Properly")
+	log.Printf("Server successfully started at port %v\n", server.Addr)
+	log.Println(server.ListenAndServe())
 }
